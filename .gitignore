@@ -177,6 +177,7 @@ data/
 *.zip
 *.fits
 *.fit
+*.npz
 
 # ignore images
 *.png

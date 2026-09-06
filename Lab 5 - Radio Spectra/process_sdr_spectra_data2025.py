@@ -1,3 +1,7 @@
+# 2025 Feb 23    Streamlined for HVC mapping project, 
+#                added spectrum_vs_rf and zoomed avg. 
+#                spectrum with bestf fit plots
+
 # 2024 Dec 31-2025 Jan02    
 #                enact total power plotting, add aitoff frame,  
 #                change labeling to use data start date/time
@@ -67,7 +71,7 @@ observing_location = EarthLocation(
 # Components of the Sun's velocity with respect to the LSR
 
 vsun_uvw = LSR().v_bary
-U,V,W = vsun_uvw.d_xyz.value[:]         # km/s
+U,V,W = vsun_uvw._xyz.value[:]         # km/s
 
 def choose_time_range_for_spectrum_plot():
 
@@ -137,8 +141,8 @@ def plot_totalpower_and_raw_dynamic_spectrum(spectra, separate_plots=False):
         title_label_ds = 'Raw dynamic spectrum ' + base_string + \
             '_' + startdate + '_' + starttime 
 
-        plotfile = 'Dynamic_spectrum_raw_data_' + basename + '_' +  \
-            base_string + '_' + nowdate + '_' + nowtime + '_Nspec_%d'%(Nspectra) + '.pdf'
+        raw_dynamic_spectrum_plotfile =  'Dynamic_spectrum_raw_data' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
         fig = plt.figure()
         vmin = np.log10(0.8*smedian) 
         vmax = np.log10(1.5*smedian) 
@@ -148,15 +152,15 @@ def plot_totalpower_and_raw_dynamic_spectrum(spectra, separate_plots=False):
         plt.ylabel('Time index')
         plt.title(title_label_ds, fontsize=8)
         plt.suptitle('Input file = ' + basenpzfile, fontsize=7)
-        plt.savefig(plotfile)
-        plt.show()
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{raw_dynamic_spectrum_plotfile}")
+        #plt.show()
         
 
         
         title_label_tp = 'Total power time series_' + base_string + \
             '_' + startdate + '_' + starttime 
-        plotfile = 'Total_power_time_series_' + basename + '_' +  \
-            base_string + '_' + startdate + '_' + starttime + '_Nspec_%d'%(Nspectra) + '.pdf'
+        total_power_time_series_plotfile =  'Total_power_time_series_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
         tpower = np.average(spectra, axis=1)
         fig = plt.figure()
         plt.plot(tvec_hr, tpower, '.', ms=2)
@@ -164,14 +168,14 @@ def plot_totalpower_and_raw_dynamic_spectrum(spectra, separate_plots=False):
         plt.ylabel('Total power (arb. units)')
         plt.title(title_label_tp, fontsize=10)
         plt.suptitle('Input file = ' + basenpzfile, fontsize=7)
-        plt.savefig(plotfile)
-        plt.show()
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{total_power_time_series_plotfile}")
+        #plt.show()
 
     # ------------------
     # Combined DS and TP
     # ------------------
-    plotfile = 'DS_and_TP_' + basename + '_' +  \
-        base_string + '_' + nowdate + '_' + nowtime + '_Nspec_%d'%(Nspectra) + '.pdf'
+    combined_ds_and_tp_plotfile =  'DS_and_TP_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
     freq = np.fft.fftshift(np.fft.fftfreq(lenfft, 1e6/sample_rate))
     extent=((freq[0], freq[-1], 0., tvec_hr[-1]))
 
@@ -217,9 +221,8 @@ def plot_totalpower_and_raw_dynamic_spectrum(spectra, separate_plots=False):
     plt.tick_params(axis='y', labelleft=False)
     plt.tick_params(axis='x', labelsize=8)
     plt.xlabel(r'$\rm Total \ power \ \ (arb.\ units)$')
-    plt.savefig(plotfile)
-
-    plt.show()
+    plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{combined_ds_and_tp_plotfile}")
+    #plt.show()
     return
 
 def remove_spectral_bandpass(
@@ -290,7 +293,8 @@ def remove_spectral_bandpass(
         plt.ylabel(r'$\rm (S - S_{base}) / S_{base} \ \ (au)$', 
             fontsize=12)
         plt.xlabel('RF  (MHz)', fontsize=18)
-        plt.show()
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/spectrum_vs_rf_{startdate}_{starttime}.png")
+        #plt.show()
 
     return RFspan, specspan, diffspec
 
@@ -300,9 +304,11 @@ def plot_ds(fvec, tvec_hr, spectra, dolog=False, heading=''):
         # ---------------------------------------------------------------
         Nspectra, Nf = np.shape(spectra)
         #plotfile = 'dynamic_spectrum_lb_' + basename + '_' +  \
-            #base_string + '_' + startdate + '_' + starttime + '.pdf'
+            #base_string + '_' + startdate + '_' + starttime + '.png'
         title_label = 'HI data   MJD ' + str(MJD) + '   ' +  str(Nspectra)  + ' spectra'  
         extent=((fvec[0], fvec[-1], tvec_hr[0],  tvec_hr[-1]))
+        #raw_dynamic_spectrum_and_lb_panels_plotfile =  'raw_DS_and_l,b_panels' + base_string + '_' + startdate + \
+            #'_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
         # find range of spectral amplitudes containing 99% of the values
         # to set the color scale:
         if dolog:
@@ -369,8 +375,8 @@ def plot_ds(fvec, tvec_hr, spectra, dolog=False, heading=''):
         plt.tick_params(axis='x', labelsize=8)
         plt.xlabel(r'$\rm b  \ \ (deg)$')
         plt.xticks((-90, 0, 90))
-        plt.show()
-        #plt.savefig(plotfile)
+        #plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{raw_dynamic_spectrum_and_lb_panels_plotfile}")
+        #plt.show()
 
         return
 
@@ -380,7 +386,7 @@ def plot_ds_and_aitoff(fvec, tvec_hr, spectra, dolog=False, heading=''):
         # ---------------------------------------------------------------
         Nspectra, Nf = np.shape(spectra)
         #plotfile = 'dynamic_spectrum_lb_' + basename + '_' +  \
-            #base_string + '_' + startdate + '_' + starttime + '.pdf'
+            #base_string + '_' + startdate + '_' + starttime + '.png'
         title_label = 'HI data   MJD ' + str(MJD) + '   ' +  str(Nspectra)  + ' spectra'  
         extent=((fvec[0], fvec[-1], tvec_hr[0],  tvec_hr[-1]))
         # find range of spectral amplitudes containing 99% of the values
@@ -455,12 +461,15 @@ def plot_ds_and_aitoff(fvec, tvec_hr, spectra, dolog=False, heading=''):
 
         # First data point
         plt.plot(-lrad[0], brad[0], 'r.', ms=6)
-        plt.show()
+        ds_aitoff_plotfile =  'flattened_ds_aitoff_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{ds_aitoff_plotfile}")
+        #plt.show()
 
         """
         # longitude
-        ax2 = plt.axes((0.55, 0.1, 0.15, 0.7))
-        #ax2 = plt.axes((0.50, 0.1, 0.15, 0.7))
+        ax3 = plt.axes((0.55, 0.1, 0.15, 0.7))
+        #ax3 = plt.axes((0.50, 0.1, 0.15, 0.7))
         plt.plot(lvec, tvec_hr, '-', lw=1.5)
         plt.plot((0,0), (0,tvec_hr[-1]), '--', lw=1)
         plt.axis(xmin=-190, xmax=190, ymin=0, ymax=tvec_hr[-1])
@@ -470,8 +479,8 @@ def plot_ds_and_aitoff(fvec, tvec_hr, spectra, dolog=False, heading=''):
         plt.xticks((-180, 0, 180))
 
         # latitude
-        ax3 = plt.axes((0.75, 0.1, 0.15, 0.7))
-        #ax3 = plt.axes((0.70, 0.1, 0.15, 0.7))
+        ax4 = plt.axes((0.75, 0.1, 0.15, 0.7))
+        ax4 = plt.axes((0.70, 0.1, 0.15, 0.7))
         plt.plot(bvec, tvec_hr, '-', lw=1.5)
         plt.plot((0,0), (0,tvec_hr[-1]), '--', lw=1)
         plt.axis(xmin=-95, xmax=95, ymin=0, ymax=tvec_hr[-1])
@@ -515,7 +524,9 @@ default_file = '/Volumes/JMCBook2022/data_lime_multispec_lb_68_-33_20241213_mjd_
 
 default_file = '/Volumes/JMCBook2022/data_lime_multispec_lb_101_-50_20250107_mjd_60682_LST_235900_4096_17578_260_10_g_10.npz'
 
-default_file = 'data_lime_multispec_lb_101_-50_20250107_mjd_60682_LST_235900_4096_17578_260_10_g_10.npz'
+default_file = '/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/data_lime_multispec_lb_mock_20250615_mjd_60841_LST_mock_4096_10_260_10_g_10_24hrs.npz'
+
+default_file = '/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/data/60_hour_scan_mjd_60841.npz'
 
 doplot = True
 
@@ -695,10 +706,10 @@ if Nspectra > 1 and doplot == True:
         print('Plotting dynamic spectrum using %d spectra'%(Nspectra))
         # ---------------------------------------------------------------
         # Imshow plot dynamic spectrum if Nspectra > 1
-        plotfile = 'dynamic_spectrum_' + basename + '_' +  \
-            base_string + '_' + startdate + '_' + starttime + '_Nspec_%d'%(Nspectra) + '.pdf'
+        raw_dynamic_spectrum_plotfile =  'Dynamic_spectrum_raw_data' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
         title_label = 'dynamic_spectrum_' + base_string + \
-            '_' + startdate + '_' + starttime + '.pdf'
+            '_' + startdate + '_' + starttime + '.png'
         #freq = np.fft.fftshift(np.fft.fftfreq(lenfft, 1e6/sample_rate))
         #extent=((freq[0], freq[-1], 0., Tint*Nspectra)) 
         extent=((f_baseband_vec[0], f_baseband_vec[-1], 0., Tint*Nspectra)) 
@@ -722,8 +733,8 @@ if Nspectra > 1 and doplot == True:
             ha='left', va='center', fontsize=5)
         plt.title(title_label, fontsize=9)
         plt.suptitle('Input file = ' + basenpzfile, fontsize=7)
-        plt.show()
-        plt.savefig(plotfile)
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{raw_dynamic_spectrum_plotfile}")
+        #plt.show()
 
         """
         PUT HERE:
@@ -741,8 +752,8 @@ if Nspectra > 1 and doplot == True:
         # ---------------------------------------------------------------
         # Plot averaged spectrum
         # ---------------------------------------------------------------
-        plotfile = 'spectrum_' + base_string + '_' + startdate + \
-            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.pdf'
+        total_power_time_series_plotfile =  'Total_power_time_series_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
         #freq = np.fft.fftshift(np.fft.fftfreq(lenfft, 1e6/sample_rate))
         plt.figure()
         plt.plot(f_baseband_vec, mean_spec)
@@ -751,20 +762,21 @@ if Nspectra > 1 and doplot == True:
         plt.ylabel(r'$\rm \log_{10} \ Spectrum \ (arbitrary\ units)$')
         plt.annotate(plotstamp, xy=(0.7, 0.02), xycoords='figure fraction', 
             ha='left', va='center', fontsize=5)
-        plt.title(plotfile, fontsize=9)
+        plt.title(total_power_time_series_plotfile, fontsize=9)
         plt.suptitle('Input file = ' + basenpzfile, fontsize=7)
-        plt.show()
-        plt.savefig(plotfile)
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{total_power_time_series_plotfile}")
+        #plt.show()
+        
 
         print('Plotting dynamic spectrum with l,b panels')
         #----------------------------------------------------------------
         # Dynamic spectrum + l, b panels: full frequency range 
         # ---------------------------------------------------------------
-        heading = 'Raw spectra'
+        heading = 'raw spectrum with l,b panels'
         plot_ds(RFvec*1000-1420, tvec_hr, spectra, dolog=True, heading=heading)
-        plotfile = 'raw_DS_lb_' + basename + '_' +  \
-                base_string + '_' + startdate + '_' + starttime + '_Nspec_%d'%(Nspectra) + '.pdf'
-        plt.savefig(plotfile)
+        raw_dynamic_spectrum_and_lb_panels_plotfile =  'raw_DS_and_l,b_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{raw_dynamic_spectrum_and_lb_panels_plotfile}")
 
         print('Plotting zoomed dynamic spectrum with l,b panels')
         # --------------------------------
@@ -781,24 +793,49 @@ if Nspectra > 1 and doplot == True:
         # Dynamic spectrum + l, b panels: zoomed in frequency range 
         # NB: zoom is done by using plt.axis() not with new array 
         # ---------------------------------------------------------------
-        plotfile = 'dynamic_spectrum_lb_zoomed_' + basename + '_' +  \
-            base_string + '_' + startdate + '_' + starttime + '_Nspec_%d'%(Nspectra) + '.pdf'
+        zoomed_dynamic_spectrum_lb_plotfile =  'zoomed_dynamic_spectrum_lb' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
         heading = 'Zoomed RF range'
         title_label = 'HI data   MJD ' + str(MJD) + '   ' +  str(Nspectra)  + ' spectra'  
         plot_ds(RFvec[indsf]*1000-1420, tvec_hr, spectra[:,indsf], dolog=False, heading=heading)
-        plt.savefig(plotfile)
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{zoomed_dynamic_spectrum_lb_plotfile}")
 
         print('Plotting zoomed average spectrum')
         # Plot zoomed average spectrum 
 
         fig = plt.figure()
+        zoomed_average_spectrum_plotfile =  'zoomed_average_spectrum_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
         ax = fig.add_subplot(111)
         plt.subplots_adjust(left=0.15, bottom=0.15)
         plt.plot(fzoom, avezoom, 'b-')
         plt.xlabel(r'$\rm Baseband \ frequency \ \ (MHz)$', fontsize=15)
         plt.ylabel(r'$\rm Spectrum \ \ \ (arb\ units)$', fontsize=15)
         plt.suptitle('Input file = ' + basenpzfile, fontsize=7)
-        plt.show()
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{zoomed_average_spectrum_plotfile}")
+        #plt.show()
+
+        print('Plotting fitted zoomed average spectrum')
+
+        # Plot zoomed average spectrum with linear fit
+
+        fig = plt.figure()
+        fitted_zoomed_average_spectrum_plotfile =  'zoomed_average_spectrum_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
+        ax = fig.add_subplot(111)
+        plt.subplots_adjust(left=0.15, bottom=0.15)
+        plt.plot(fzoom, avezoom, 'b-', label='Data')
+
+        coeffs = np.polyfit(fzoom, avezoom, 5)  # fits a n-degree polynomial 
+        fit_line = np.polyval(coeffs, fzoom)  
+
+        plt.plot(fzoom, fit_line, 'r--', label=f'Linear Fit: y = {coeffs[0]:.3f}x + {coeffs[1]:.3f}')
+        plt.xlabel(r'$\rm Baseband \ frequency \ \ (MHz)$', fontsize=15)
+        plt.ylabel(r'$\rm Spectrum \ \ \ (arb\ units)$', fontsize=15)
+        plt.suptitle('Input file = ' + basenpzfile, fontsize=7)
+        plt.legend()
+        plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{fitted_zoomed_average_spectrum_plotfile}")
+        #plt.show()
 
         print('Plotting raw dynamic spectrum and total power time series')
         # ----------------------------
@@ -834,15 +871,16 @@ if Nspectra > 1 and doplot == True:
     print('Plotting flattened dynamic spectra and l,b time series')
     heading = r'$\rm Flattened\ using \ %d-deg \ polynomial$'%(degfit)
     plot_ds(RFspan*1000-1420, tvec_hr, dspectra, dolog=False, heading=heading)
-    plotfile = 'normalized_DS_lb_' + basename + '_' +  \
-        base_string + '_' + startdate + '_' + starttime + '_Nspec_%d'%(Nspectra) + '.pdf'
-    plt.savefig(plotfile)
+    flattened_ds_lb_plotfile =  'flattened_ds_lb_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
+    plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{flattened_ds_lb_plotfile}")
 
     print('Plotting flattened dynamic spectra and aitoff display')
     plot_ds_and_aitoff(RFspan*1000-1420, tvec_hr, dspectra, dolog=False, heading=heading)
-    plotfile = 'normalized_DS_aitoff_' + basename + '_' +  \
-        base_string + '_' + startdate + '_' + starttime + '_Nspec_%d'%(Nspectra) + '.pdf'
-    plt.savefig(plotfile)
+    ds_aitoff_plotfile =  'flattened_ds_aitoff_' + base_string + '_' + startdate + \
+            '_' + starttime + '_Nspec_%d'%(Nspectra) + '.png'
+    plt.savefig(f"/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 5 - Radio Spectra/plots/{ds_aitoff_plotfile}")
+    
 
 """
 # Next: fold spectra vs time if there are multiple cycles
@@ -875,8 +913,15 @@ plt.yscale('log')
 plt.show()
 
 """
+# buffer
+#print("Starting buffer plot")
+#plt.figure()
+#plt.subplot(projection="aitoff")
+#plt.title("Aitoff")
+#plt.grid(True)
+#plt.show()
+#print("Ending buffer plot")
 
 
 input('hit return')
 plt.close('all')
-
