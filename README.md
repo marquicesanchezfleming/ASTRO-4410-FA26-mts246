@@ -4,9 +4,19 @@ under Prof. Gordon Stacey and Prof. James Cordes. Specifically, this repository 
 five labs we worked on in the class. They are, in order:
 
 ## Lab 1: CCD characterization
+The lab is broken up into 5 sections:
+  a) Measuring the Bias and Read Noise
+  b) Linearity and Saturation
+  c) Measuring the Dark Current
+  d) Determining DN's to electrons
+  e) Long exposures and Cosmic Rays 
+  
 ## Lab 2: Imaging and Photometry
+
 ## Lab 3: Spectroscopy
+
 ## Lab 4: TBD
+
 ## Lab 5: Radio Spectra
 
 All code is publically available, though both the simlulated data and the real data collected in the lab, have not been pushed
