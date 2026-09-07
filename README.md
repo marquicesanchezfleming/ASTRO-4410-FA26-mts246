@@ -4,7 +4,7 @@ under Prof. Gordon Stacey and Prof. James Cordes. Specifically, this repository 
 five labs we worked on in the class. They are, in order:
 
 ## Lab 1: CCD characterization
-The lab is broken up into 5 sections:
+### The lab is broken up into 5 sections:
 
   a) Measuring the Bias and Read Noise
   
