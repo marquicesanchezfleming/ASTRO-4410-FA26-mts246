@@ -5,10 +5,15 @@ five labs we worked on in the class. They are, in order:
 
 ## Lab 1: CCD characterization
 The lab is broken up into 5 sections:
+
   a) Measuring the Bias and Read Noise
+  
   b) Linearity and Saturation
+  
   c) Measuring the Dark Current
+  
   d) Determining DN's to electrons
+  
   e) Long exposures and Cosmic Rays 
   
 ## Lab 2: Imaging and Photometry
