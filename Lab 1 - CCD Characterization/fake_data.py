@@ -1,4 +1,9 @@
 """
+NOTE: This script, as well as the subsequent synthetic data, is AI-generated. 
+It is intended to provide a consistent set of test data for the CCD 
+characterization lab, but it may not reflect real-world CCD behavior 
+accurately. Use it for educational purposes only.
+
 One consistent synthetic CCD, used to generate test data for every
 section of Lab 1 (A/C/E bias & darks, B linearity, D photon transfer).
 
@@ -8,15 +13,7 @@ draws from a single TRUE_CCD dict. That means the numbers you recover
 from each section's analysis script should agree with each other and
 with TRUE_CCD -- which is exactly the kind of cross-section
 consistency your actual report will want to demonstrate.
-
-Usage:
-    import fake_ccd as fc
-    import importlib; importlib.reload(fc)
-
-    fc.generate_all("/home/claude/fake_lab_data/")
-
-    # then run each section's real analysis script against the
-    # matching subfolder, and compare to fc.TRUE_CCD
+ 
 """
 
 import os
