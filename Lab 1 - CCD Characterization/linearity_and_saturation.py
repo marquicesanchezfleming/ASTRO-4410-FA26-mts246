@@ -135,6 +135,23 @@ def analyze_linearity(frame_dir, aperture_radius=APERTURE_RADIUS_PX,
 def plot_linearity(results, saturation_dn=SATURATION_DN):
     import matplotlib.pyplot as plt
 
+    plt.style.use("seaborn-v0_8-white")
+    plt.rcParams.update({
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Roman"],
+        "font.size": 16,
+        "axes.linewidth": 1.5,
+        "axes.unicode_minus": False,
+        "xtick.major.size": 7,
+        "ytick.major.size": 7,
+        "xtick.major.width": 1.5,
+        "ytick.major.width": 1.5,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "text.latex.preamble": r"\usepackage[T1]{fontenc}\usepackage{amsmath}\usepackage{amssymb}",
+    })
+
     exptimes = results["exptimes"]
     aperture_vals = results["aperture_vals"]
     fit_mask = results["fit_mask"]
@@ -161,4 +178,5 @@ def plot_linearity(results, saturation_dn=SATURATION_DN):
     axes[1].legend()
 
     plt.tight_layout()
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/linearity_and_saturation.png", dpi=1000)
     return fig

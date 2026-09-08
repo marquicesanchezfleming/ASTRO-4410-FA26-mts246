@@ -172,6 +172,23 @@ def analyze_photon_transfer(frame_dir, bias_level, region=None,
 def plot_ptc(results):
     import matplotlib.pyplot as plt
 
+    plt.style.use("seaborn-v0_8-white")
+    plt.rcParams.update({
+                "text.usetex": True,
+                "font.family": "serif",
+                "font.serif": ["Computer Modern Roman"],
+                "font.size": 16,
+                "axes.linewidth": 1.5,
+                "axes.unicode_minus": False,
+                "xtick.major.size": 7,
+                "ytick.major.size": 7,
+                "xtick.major.width": 1.5,
+                "ytick.major.width": 1.5,
+                "xtick.direction": "in",
+                "ytick.direction": "in",
+                "text.latex.preamble": r"\usepackage[T1]{fontenc}\usepackage{amsmath}\usepackage{amssymb}",
+            })
+
     signal = results["signal"]
     noise = results["noise"]
     shot_noise = results["shot_noise"]
@@ -182,7 +199,7 @@ def plot_ptc(results):
     fp_frac = results["fp_frac"]
     read_noise_dn = results["read_noise_dn"]
 
-    fig, ax = plt.subplots(figsize=(7.5, 6.5))
+    fig, ax = plt.subplots(figsize=(9, 6))
     ax.loglog(signal, noise, 'x', color='lightgray', label="raw total noise")
     ax.loglog(signal, shot_noise, '.', color='gray', markersize=4,
               label="read-noise-corrected")
@@ -208,7 +225,6 @@ def plot_ptc(results):
     if read_noise_dn is not None:
         ax.axhline(read_noise_dn, color='red', linestyle=':', label="Section A read noise")
 
-        # combined 3-term model, overlaid on the raw total noise
         fp_term = (fp_frac * s_fit) ** 2 if fp_frac is not None else 0.0
         model = np.sqrt(read_noise_dn ** 2 + gain * s_fit + fp_term)
         ax.loglog(s_fit, model, '-', color='navy', linewidth=1.5, alpha=0.8,
@@ -216,6 +232,7 @@ def plot_ptc(results):
 
     ax.set_xlabel("Signal, bias-subtracted (DN)")
     ax.set_ylabel("Noise (DN)")
-    ax.set_title("Photon transfer curve -- three noise regimes")
+    ax.set_title("Photon transfer curve")
     ax.legend(fontsize=7.5, loc="upper left")
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/photon_transfer.png", dpi=1000)
     return fig

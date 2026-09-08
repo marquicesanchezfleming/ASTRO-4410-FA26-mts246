@@ -116,7 +116,24 @@ def plot_single_vs_region(results):
 def plot_comparison(off_results, on_results):
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots(figsize=(7, 5))
+    plt.style.use("seaborn-v0_8-white")
+    plt.rcParams.update({
+            "text.usetex": True,
+            "font.family": "serif",
+            "font.serif": ["Computer Modern Roman"],
+            "font.size": 16,
+            "axes.linewidth": 1.5,
+            "axes.unicode_minus": False,
+            "xtick.major.size": 7,
+            "ytick.major.size": 7,
+            "xtick.major.width": 1.5,
+            "ytick.major.width": 1.5,
+            "xtick.direction": "in",
+            "ytick.direction": "in",
+            "text.latex.preamble": r"\usepackage[T1]{fontenc}\usepackage{amsmath}\usepackage{amssymb}",
+        })
+
+    fig, ax = plt.subplots(figsize=(9, 6))
     for results, label, color in [(off_results, "Cooler OFF", "tab:red"),
                                     (on_results, "Cooler ON", "tab:blue")]:
         t = results["exptimes"]
@@ -132,4 +149,5 @@ def plot_comparison(off_results, on_results):
     ax.set_ylabel("Region median (DN)")
     ax.set_title("Dark current: cooler off vs on")
     ax.legend()
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/dark_current.png", dpi=1000)
     return fig
