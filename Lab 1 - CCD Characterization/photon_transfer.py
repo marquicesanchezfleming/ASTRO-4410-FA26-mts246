@@ -1,6 +1,7 @@
 import glob
 import numpy as np
 from astropy.io import fits
+from scipy import signal
 
 
 def get_exptime(fits_path, keys=("EXPTIME", "EXPOSURE")):
@@ -170,69 +171,71 @@ def analyze_photon_transfer(frame_dir, bias_level, region=None,
 
 
 def plot_ptc(results):
+
     import matplotlib.pyplot as plt
 
     plt.style.use("seaborn-v0_8-white")
+
     plt.rcParams.update({
-                "text.usetex": True,
-                "font.family": "serif",
-                "font.serif": ["Computer Modern Roman"],
-                "font.size": 16,
-                "axes.linewidth": 1.5,
-                "axes.unicode_minus": False,
-                "xtick.major.size": 7,
-                "ytick.major.size": 7,
-                "xtick.major.width": 1.5,
-                "ytick.major.width": 1.5,
-                "xtick.direction": "in",
-                "ytick.direction": "in",
-                "text.latex.preamble": r"\usepackage[T1]{fontenc}\usepackage{amsmath}\usepackage{amssymb}",
-            })
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Roman"],
+        "font.size": 16,
+
+        "axes.linewidth": 1.5,
+
+        "axes.unicode_minus": False,
+
+        "xtick.major.size": 7,
+        "ytick.major.size": 7,
+
+        "xtick.major.width": 1.5,
+        "ytick.major.width": 1.5,
+
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+
+        "text.latex.preamble":
+            r"\usepackage[T1]{fontenc}"
+            r"\usepackage{amsmath}"
+            r"\usepackage{amssymb}",
+    })
 
     signal = results["signal"]
     noise = results["noise"]
-    shot_noise = results["shot_noise"]
+
     shot_mask = results["shot_noise_mask"]
     read_mask = results["read_noise_mask"]
     fp_mask = results["fp_mask"]
+
     gain = results["gain"]
     fp_frac = results["fp_frac"]
     read_noise_dn = results["read_noise_dn"]
 
     fig, ax = plt.subplots(figsize=(9, 6))
-    ax.loglog(signal, noise, 'x', color='lightgray', label="raw total noise")
-    ax.loglog(signal, shot_noise, '.', color='gray', markersize=4,
-              label="read-noise-corrected")
-
-    ax.loglog(signal[read_mask], noise[read_mask], 'o', color='tab:red',
-              label="read-noise-floor regime")
-    ax.loglog(signal[shot_mask], shot_noise[shot_mask], 'o', color='tab:green',
-              label="shot-noise regime (used in fit)")
+    ax.loglog(signal, noise, 'x', color='lightgray', markersize=7, markeredgewidth=1.5, label=r"measured noise")
+    ax.loglog(signal[read_mask], noise[read_mask], 'o', color='tab:red', markersize=7, label=r"read-noise regime")
+    ax.loglog(signal[shot_mask], noise[shot_mask], 'o', color='tab:green', markersize=7, label=r"shot-noise regime")
     if fp_mask is not None and fp_mask.sum() > 0:
-        ax.loglog(signal[fp_mask], noise[fp_mask], 'o', color='tab:orange',
-                  label="fixed-pattern regime")
+        ax.loglog(signal[fp_mask], noise[fp_mask], 'o', color='tab:orange', markersize=7, label=r"fixed-pattern regime")
 
-    s_fit = np.logspace(np.log10(signal.min()), np.log10(signal.max()), 200)
-    ax.loglog(s_fit, np.sqrt(s_fit), '--', color='black',
-              label="reference: noise = sqrt(signal), G=1")
-    ax.loglog(s_fit, np.sqrt(gain * s_fit), '--', color='tab:green',
-              label=f"shot fit: sqrt(G*signal), G={gain:.3f}")
-
-    if fp_frac is not None:
-        ax.loglog(s_fit, fp_frac * s_fit, '--', color='tab:orange',
-                  label=f"fixed-pattern fit: {fp_frac*100:.2f}% * signal")
-
+    s_fit = np.logspace(np.log10(signal.min()), np.log10(signal.max()), 300)
     if read_noise_dn is not None:
-        ax.axhline(read_noise_dn, color='red', linestyle=':', label="Section A read noise")
+        if fp_frac is not None:
+            fp_term = (fp_frac * s_fit) ** 2
+        else:
+            fp_term = 0.0
 
-        fp_term = (fp_frac * s_fit) ** 2 if fp_frac is not None else 0.0
-        model = np.sqrt(read_noise_dn ** 2 + gain * s_fit + fp_term)
-        ax.loglog(s_fit, model, '-', color='navy', linewidth=1.5, alpha=0.8,
-                  label="combined model (all 3 terms)")
+        model = np.sqrt(read_noise_dn**2 + gain * s_fit + fp_term)
+        ax.loglog(s_fit, model, '-', color='navy', linewidth=2.2,
+            label=(r"$\sigma_{\rm tot}(S) = \sqrt{\sigma_{\rm read}^2 + GS+(f_{\rm FP}S)^2}$"))
+        ax.axhline(read_noise_dn, color='tab:red', linestyle=':', linewidth=1.5,
+            label=(rf"$\sigma_{{\rm read}} = {read_noise_dn:.3f}\,$DN"))
 
-    ax.set_xlabel("Signal, bias-subtracted (DN)")
-    ax.set_ylabel("Noise (DN)")
-    ax.set_title("Photon transfer curve")
-    ax.legend(fontsize=7.5, loc="upper left")
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/photon_transfer.png", dpi=1000)
+    ax.set_xlabel(r"Signal, bias-subtracted (DN)")
+    ax.set_ylabel(r"Noise (DN)")
+    ax.set_title(r"Photon Transfer Curve")
+    ax.legend(fontsize=14, loc="upper left", frameon=True, fancybox=False, framealpha=0.9)
+    fig.tight_layout()
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/photon_transfer.png", dpi=1000, bbox_inches="tight")
     return fig

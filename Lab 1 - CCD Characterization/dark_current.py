@@ -140,10 +140,10 @@ def plot_comparison(off_results, on_results):
         v = results["region_vals"]
         slope = results["region_slope"]
         intercept = results["region_intercept"]
-        ax.plot(t, v, 'o', color=color, label=f"{label} (data)")
+        ax.plot(t, v, 'o', color=color, label=f"{label} (measurements)")
         t_fit = np.linspace(0, t.max(), 100)
         ax.plot(t_fit, slope * t_fit + intercept, '--', color=color,
-                 label=f"{label} fit: {slope:.3f} DN/s")
+                 label=f"{label} fit: {slope:.4f} DN/s")
 
     ax.set_xlabel("Exposure time (s)")
     ax.set_ylabel("Region median (DN)")

@@ -21,7 +21,7 @@ plt.rcParams.update({
 })
 
 def compute_bias_and_read_noise(directory):
-    files = sorted(glob.glob(directory + "/*.fits"))
+    files = sorted(glob.glob(directory + "/*.fit"))
 
     means = []
     stds = []

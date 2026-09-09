@@ -1,4 +1,8 @@
 import glob
+import os
+from pathlib import Path
+from contextlib import contextmanager
+
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
@@ -14,6 +18,11 @@ CCD_PROFILES = {
         "exptime_s": 600.0,
         "aliases": ["andor"],
     },
+}
+
+CCD_DISPLAY_NAMES = {
+    "andor": "Andor",
+    "atik_titan": "Atik Titan",
 }
 
 HOT_PIXEL_NSIGMA = 5.0      # threshold for "hot pixel"
@@ -122,10 +131,12 @@ def find_cosmic_rays(stack, median_map, hot_mask, nsigma=COSMIC_RAY_NSIGMA,
     thresh = nsigma * sigma
     print(f"Residual robust sigma: {sigma:.2f} DN, cosmic-ray threshold: {thresh:.1f} DN")
  
+    candidate_masks = np.zeros_like(stack, dtype=bool)
     events_per_frame = []
     for i in range(n_frames):
         candidate = residuals[i] > thresh
-        candidate &= ~hot_mask  
+        candidate &= ~hot_mask
+        candidate_masks[i] = candidate
         events_per_frame.append(candidate.sum())
  
     events_per_frame = np.array(events_per_frame)
@@ -147,7 +158,7 @@ def find_cosmic_rays(stack, median_map, hot_mask, nsigma=COSMIC_RAY_NSIGMA,
     print(f"Mean events/frame (good frames only): "
           f"{events_per_frame[good_frames].mean():.2f}")
  
-    return events_per_frame, good_frames, bad_frames
+    return events_per_frame, good_frames, bad_frames, candidate_masks
  
  
 def compute_rate(events_per_frame, good_frames, exptime_s, pixel_pitch_um, nx, ny):
@@ -183,7 +194,7 @@ def analyze(frame_dir, ccd_type=None, exptime_s=None, pixel_pitch_um=None,
     ny, nx = stack.shape[1], stack.shape[2]
  
     hot_mask, median_map = find_hot_pixels(stack, nsigma=hot_nsigma)
-    events_per_frame, good_frames, bad_frames = find_cosmic_rays(
+    events_per_frame, good_frames, bad_frames, candidate_masks = find_cosmic_rays(
         stack, median_map, hot_mask, nsigma=cr_nsigma, bad_frame_frac=bad_frame_frac
     )
  
@@ -194,12 +205,12 @@ def analyze(frame_dir, ccd_type=None, exptime_s=None, pixel_pitch_um=None,
         print()
  
     rate = compute_rate(events_per_frame, good_frames, exptime_s, pixel_pitch_um, nx, ny)
-
  
     return {
         "ccd_type": profile_name,
         "pixel_pitch_um": pixel_pitch_um,
         "exptime_s": exptime_s,
+        "stack": stack,
         "files": files,
         "stack_shape": stack.shape,
         "median_map": median_map,
@@ -208,42 +219,13 @@ def analyze(frame_dir, ccd_type=None, exptime_s=None, pixel_pitch_um=None,
         "good_frames": good_frames,
         "bad_frames": bad_frames,
         "bad_frame_paths": [files[i] for i in bad_frames],
+        "candidate_masks": candidate_masks,
         "rate_events_per_min_per_mm2": rate,
     }
 
-def full_analyze(frame_dir, ccd_type=None, exptime_s=None, pixel_pitch_um=None,
-            hot_nsigma=HOT_PIXEL_NSIGMA, cr_nsigma=COSMIC_RAY_NSIGMA,
-            bad_frame_frac=BAD_FRAME_FRAC, exclude_keywords=("bias",),
-            exptime_tol_s=5.0):
-    profile_name, profile = resolve_ccd_profile(frame_dir, ccd_type)
-    exptime_s = profile["exptime_s"] if exptime_s is None else exptime_s
-    pixel_pitch_um = profile["pixel_pitch_um"] if pixel_pitch_um is None else pixel_pitch_um
- 
-    print(f"CCD profile: {profile_name}  "
-          f"(pixel pitch = {pixel_pitch_um} um, exptime = {exptime_s} s)\n")
- 
-    stack, files = load_stack(frame_dir, exclude_keywords=exclude_keywords,
-                               expected_exptime_s=exptime_s, exptime_tol_s=exptime_tol_s)
-    ny, nx = stack.shape[1], stack.shape[2]
- 
-    hot_mask, median_map = find_hot_pixels(stack, nsigma=hot_nsigma)
-    events_per_frame, good_frames, bad_frames = find_cosmic_rays(
-        stack, median_map, hot_mask, nsigma=cr_nsigma, bad_frame_frac=bad_frame_frac
-    )
- 
-    if len(bad_frames) > 0:
-        print("Bad frame file paths:")
-        for i in bad_frames:
-            print(f"    [{i}] {files[i]}")
-        print()
- 
-    rate = compute_rate(events_per_frame, good_frames, exptime_s, pixel_pitch_um, nx, ny)
-
-    andor_results = analyze("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/AndorCCD-CosmicRays/")
-    atik_results = analyze("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/CRtest")
-
-    plt.style.use("seaborn-v0_8-white")
-    plt.rcParams.update({
+@contextmanager
+def lab_plot_style():
+    style = {
         "text.usetex": True,
         "font.family": "serif",
         "font.serif": ["Computer Modern Roman"],
@@ -257,89 +239,71 @@ def full_analyze(frame_dir, ccd_type=None, exptime_s=None, pixel_pitch_um=None,
         "xtick.direction": "in",
         "ytick.direction": "in",
         "text.latex.preamble": r"\usepackage[T1]{fontenc}\usepackage{amsmath}\usepackage{amssymb}",
-    })
+    }
+    with plt.style.context("seaborn-v0_8-white"), plt.rc_context(style):
+        yield
 
-    stack_A, files_A = load_stack("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/AndorCCD-CosmicRays")
-    bad_idx = andor_results["bad_frames"][0]
-    good_idx = andor_results["good_frames"][0]
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    axes[0].imshow(stack_A[good_idx], vmin=np.percentile(stack_A[good_idx], 1),
-                vmax=np.percentile(stack_A[good_idx], 99), cmap='gray')
-    axes[0].set_title(f"Good frame: {files_A[good_idx].split('/')[-1]}")
-    axes[1].imshow(stack_A[bad_idx], cmap='gray')
-    axes[1].set_title(f"Bad frame: {files_A[bad_idx].split('/')[-1]}")
-    plt.tight_layout()
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/andor_good_bad.png", dpi=1000)
+def plot_ccd_diagnostics(name, results, output_dir, dpi=300, display_name=None):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    stack_B, files_B = load_stack("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/CRtest")
-    bad_idx = atik_results["bad_frames"][0]
-    good_idx = atik_results["good_frames"][0]
+    if display_name is None:
+        display_name = CCD_DISPLAY_NAMES.get(results.get("ccd_type"), name)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    axes[0].imshow(stack_B[good_idx], vmin=np.percentile(stack_B[good_idx], 1),
-                vmax=np.percentile(stack_B[good_idx], 99), cmap='gray')
-    axes[0].set_title(f"Good frame: {files_B[good_idx].split('/')[-1]}")
-    axes[1].imshow(stack_B[bad_idx], cmap='gray')
-    axes[1].set_title(f"Bad frame: {files_B[bad_idx].split('/')[-1]}")
-    plt.tight_layout()
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/atik_good_bad.png", dpi=1000)
+    stack = results["stack"]
+    files = results["files"]
+    median_map = results["median_map"]
+    hot_mask = results["hot_mask"]
+    candidate_masks = results["candidate_masks"]
 
-    plt.figure(figsize=(10, 8))
-    plt.imshow(andor_results["median_map"], vmin=np.percentile(andor_results["median_map"], 1),
-            vmax=np.percentile(andor_results["median_map"], 99), cmap='gray')
-    ys, xs = np.where(andor_results["hot_mask"])
-    plt.scatter(xs, ys, s=10, facecolors='none', edgecolors='red', label='hot pixels')
-    plt.legend()
-    plt.title("Median dark map with hot pixels circled")
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/andor_median_map.png", dpi=1000)
+    if len(results["bad_frames"]) == 0 or len(results["good_frames"]) == 0:
+        print(f"[{name}] skipping diagnostics: need at least one good and one bad frame")
+        return
 
-    plt.figure(figsize=(10, 8))
-    plt.imshow(atik_results["median_map"], vmin=np.percentile(atik_results["median_map"], 1),
-            vmax=np.percentile(atik_results["median_map"], 99), cmap='gray')
-    ys, xs = np.where(atik_results["hot_mask"])
-    plt.scatter(xs, ys, s=10, facecolors='none', edgecolors='red', label='hot pixels')
-    plt.legend()
-    plt.title("Median dark map with hot pixels circled")
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/atik_median_map.png", dpi=1000)
+    good_idx = results["good_frames"][0]
+    bad_idx = results["bad_frames"][0]
 
-    residual = stack_A[good_idx] - andor_results["median_map"]
-    mad = np.median(np.abs(residual - np.median(residual)))
-    thresh = COSMIC_RAY_NSIGMA * 1.4826 * mad
-    candidate = (residual > thresh) & ~andor_results["hot_mask"]
-    ys, xs = np.where(candidate)
+    with lab_plot_style():
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+        fig.suptitle(display_name)
+        axes[0].imshow(stack[good_idx],
+                        vmin=np.percentile(stack[good_idx], 1),
+                        vmax=np.percentile(stack[good_idx], 99), cmap="gray")
+        axes[0].set_title(f"Good frame: {os.path.basename(files[good_idx])}")
+        axes[1].imshow(stack[bad_idx], cmap="gray")
+        axes[1].set_title(f"Bad frame: {os.path.basename(files[bad_idx])}")
+        plt.tight_layout()
+        fig.savefig(output_dir / f"{name}_good_bad.png", dpi=dpi)
+        plt.close(fig)
 
-    plt.figure(figsize=(10, 8))
-    plt.imshow(stack_A[good_idx], vmin=np.percentile(stack_A[good_idx],1),
-            vmax=np.percentile(stack_A[good_idx],99), cmap='gray')
-    plt.scatter(xs, ys, s=30, facecolors='none', edgecolors='yellow')
-    plt.title(f"Cosmic ray candidates, frame {good_idx}")
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/andor_cosmic_rays.png", dpi=1000)
-    
-    residual = stack_B[good_idx] - atik_results["median_map"]
-    mad = np.median(np.abs(residual - np.median(residual)))
-    thresh = COSMIC_RAY_NSIGMA * 1.4826 * mad
-    candidate = (residual > thresh) & ~atik_results["hot_mask"]
-    ys, xs = np.where(candidate)
+        fig = plt.figure(figsize=(10, 8))
+        plt.imshow(median_map,
+                   vmin=np.percentile(median_map, 1),
+                   vmax=np.percentile(median_map, 99), cmap="gray")
+        ys, xs = np.where(hot_mask)
+        plt.scatter(xs, ys, s=10, facecolors="none", edgecolors="red", label="hot pixels")
+        plt.legend()
+        plt.title(f"{display_name}: median dark map with hot pixels circled")
+        fig.savefig(output_dir / f"{name}_median_map.png", dpi=dpi)
+        plt.close(fig)
 
-    plt.figure(figsize=(10, 8))
-    plt.imshow(stack_B[good_idx], vmin=np.percentile(stack_B[good_idx],1),
-            vmax=np.percentile(stack_B[good_idx],99), cmap='gray')
-    plt.scatter(xs, ys, s=30, facecolors='none', edgecolors='yellow')
-    plt.title(f"Cosmic ray candidates, frame {good_idx}")
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/atik_cosmic_rays.png", dpi=1000)
+        ys, xs = np.where(candidate_masks[good_idx])
+        fig = plt.figure(figsize=(10, 8))
+        plt.imshow(stack[good_idx],
+                   vmin=np.percentile(stack[good_idx], 1),
+                   vmax=np.percentile(stack[good_idx], 99), cmap="gray")
+        plt.scatter(xs, ys, s=30, facecolors="none", edgecolors="yellow")
+        plt.title(f"{display_name}: cosmic ray candidates, frame {good_idx}")
+        fig.savefig(output_dir / f"{name}_cosmic_rays.png", dpi=dpi)
+        plt.close(fig)
 
-    return {
-            "ccd_type": profile_name,
-            "pixel_pitch_um": pixel_pitch_um,
-            "exptime_s": exptime_s,
-            "files": files,
-            "stack_shape": stack.shape,
-            "median_map": median_map,
-            "hot_mask": hot_mask,
-            "events_per_frame": events_per_frame,
-            "good_frames": good_frames,
-            "bad_frames": bad_frames,
-            "bad_frame_paths": [files[i] for i in bad_frames],
-            "rate_events_per_min_per_mm2": rate,
-        }
+
+def full_analyze(andor_dir, atik_dir, output_dir):
+    andor_results = analyze(andor_dir)
+    atik_results = analyze(atik_dir)
+
+    plot_ccd_diagnostics("andor", andor_results, output_dir)
+    plot_ccd_diagnostics("atik", atik_results, output_dir)
+
+    return andor_results, atik_results
