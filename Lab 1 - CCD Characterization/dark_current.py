@@ -134,8 +134,7 @@ def plot_comparison(off_results, on_results):
         })
 
     fig, ax = plt.subplots(figsize=(9, 6))
-    for results, label, color in [(off_results, "Cooler OFF", "tab:red"),
-                                    (on_results, "Cooler ON", "tab:blue")]:
+    for results, label, color in [(on_results, "Cooler ON", "#8236C7"), (off_results, "Cooler OFF", "#018943")]:
         t = results["exptimes"]
         v = results["region_vals"]
         slope = results["region_slope"]
@@ -147,7 +146,53 @@ def plot_comparison(off_results, on_results):
 
     ax.set_xlabel("Exposure time (s)")
     ax.set_ylabel("Region median (DN)")
-    ax.set_title("Dark current: cooler off vs on")
     ax.legend()
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/dark_current.png", dpi=1000)
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/dark_current.png", dpi=1000, bbox_inches="tight")
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/nicer_plots/dark_current.pdf", bbox_inches="tight")
+    return fig
+
+def plot_comparison_baseline(off_results, on_results):
+    import matplotlib.pyplot as plt
+
+    plt.style.use("seaborn-v0_8-white")
+
+    plt.rcParams.update({
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Roman"],
+        "font.size": 16,
+        "axes.linewidth": 1.5,
+        "axes.unicode_minus": False,
+        "xtick.major.size": 7,
+        "ytick.major.size": 7,
+        "xtick.major.width": 1.5,
+        "ytick.major.width": 1.5,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "text.latex.preamble":
+            r"\usepackage[T1]{fontenc}"
+            r"\usepackage{amsmath}"
+            r"\usepackage{amssymb}",
+    })
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    for results, label, color in [(on_results, "Cooler ON", "#8236C7"), (off_results, "Cooler OFF", "#018943")]:
+
+        t = results["exptimes"]
+        v = results["region_vals"]
+        slope = results["region_slope"]
+        intercept = results["region_intercept"]
+
+        v_corrected = v - intercept
+        ax.plot(t, v_corrected, 'o', color=color, label=f"{label} (measurements)")
+        t_fit = np.linspace(0, t.max(), 200)
+        ax.plot(t_fit, slope * t_fit, '--', color=color, label=f"{label} fit: {slope:.4f} DN/s")
+
+    ax.axhline(0, color="0.7", linewidth=1)
+    ax.set_xlabel("Exposure time (s)")
+    ax.set_ylabel(r"Baseline-subtracted region median (DN)")
+    ax.legend()
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/dark_current_baseline_subtracted.png", dpi=1000, bbox_inches="tight")
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/nicer_plots/dark_current_baseline_subtracted.pdf", bbox_inches="tight")
     return fig

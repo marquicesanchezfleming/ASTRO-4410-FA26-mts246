@@ -171,30 +171,21 @@ def analyze_photon_transfer(frame_dir, bias_level, region=None,
 
 
 def plot_ptc(results):
-
     import matplotlib.pyplot as plt
-
     plt.style.use("seaborn-v0_8-white")
-
     plt.rcParams.update({
         "text.usetex": True,
         "font.family": "serif",
         "font.serif": ["Computer Modern Roman"],
         "font.size": 16,
-
         "axes.linewidth": 1.5,
-
         "axes.unicode_minus": False,
-
         "xtick.major.size": 7,
         "ytick.major.size": 7,
-
         "xtick.major.width": 1.5,
         "ytick.major.width": 1.5,
-
         "xtick.direction": "in",
         "ytick.direction": "in",
-
         "text.latex.preamble":
             r"\usepackage[T1]{fontenc}"
             r"\usepackage{amsmath}"
@@ -213,11 +204,11 @@ def plot_ptc(results):
     read_noise_dn = results["read_noise_dn"]
 
     fig, ax = plt.subplots(figsize=(9, 6))
-    ax.loglog(signal, noise, 'x', color='lightgray', markersize=7, markeredgewidth=1.5, label=r"measured noise")
-    ax.loglog(signal[read_mask], noise[read_mask], 'o', color='tab:red', markersize=7, label=r"read-noise regime")
-    ax.loglog(signal[shot_mask], noise[shot_mask], 'o', color='tab:green', markersize=7, label=r"shot-noise regime")
+    ax.loglog(signal, noise, 'x', color='lightgray', markersize=7, markeredgewidth=1.5, label=r"Measured noise")
+    ax.loglog(signal[read_mask], noise[read_mask], 'o', color='#8236C7', markersize=7, label=r"Read-noise regime")
+    ax.loglog(signal[shot_mask], noise[shot_mask], 'o', color='#FFC31B', markersize=7, label=r"Shot-noise regime")
     if fp_mask is not None and fp_mask.sum() > 0:
-        ax.loglog(signal[fp_mask], noise[fp_mask], 'o', color='tab:orange', markersize=7, label=r"fixed-pattern regime")
+        ax.loglog(signal[fp_mask], noise[fp_mask], 'o', color='#018943', markersize=7, label=r"Fixed-pattern regime")
 
     s_fit = np.logspace(np.log10(signal.min()), np.log10(signal.max()), 300)
     if read_noise_dn is not None:
@@ -227,15 +218,37 @@ def plot_ptc(results):
             fp_term = 0.0
 
         model = np.sqrt(read_noise_dn**2 + gain * s_fit + fp_term)
-        ax.loglog(s_fit, model, '-', color='navy', linewidth=2.2,
+        ax.loglog(s_fit, model, '-', color='#004AAE', linewidth=2.2,
             label=(r"$\sigma_{\rm tot}(S) = \sqrt{\sigma_{\rm read}^2 + GS+(f_{\rm FP}S)^2}$"))
         ax.axhline(read_noise_dn, color='tab:red', linestyle=':', linewidth=1.5,
             label=(rf"$\sigma_{{\rm read}} = {read_noise_dn:.3f}\,$DN"))
 
+        log_s = np.log10(s_fit)
+        log_model = np.log10(model)
+        local_slope = np.gradient(log_model, log_s)
+
+        if shot_mask is not None and shot_mask.sum() > 0:
+            s_anchor = np.median(signal[shot_mask])
+        else:
+            s_anchor = np.sqrt(s_fit.min() * s_fit.max())
+        idx = np.argmin(np.abs(s_fit - s_anchor))
+        slope_here = local_slope[idx]
+
+        x0, y0 = s_fit[idx], model[idx]
+        x1 = s_fit[min(idx + 1, len(s_fit) - 1)]
+        y1 = model[min(idx + 1, len(s_fit) - 1)]
+        (sx0, sy0), (sx1, sy1) = ax.transData.transform([(x0, y0), (x1, y1)])
+        angle_deg = np.degrees(np.arctan2(sy1 - sy0, sx1 - sx0))
+
+        ax.annotate(rf"slope $= {slope_here:.3f}$", xy=(x0, y0), xytext=(0, 8),  
+            textcoords="offset points", rotation=angle_deg, rotation_mode="anchor",
+            ha="center", va="bottom", fontsize=14, color="#004AAE")
+
+    ax.axvline(x=65536, linestyle='--', label=r'Full Well, Max Signal $S = 2^{16}$', color='#E7115E')
     ax.set_xlabel(r"Signal, bias-subtracted (DN)")
     ax.set_ylabel(r"Noise (DN)")
-    ax.set_title(r"Photon Transfer Curve")
     ax.legend(fontsize=14, loc="upper left", frameon=True, fancybox=False, framealpha=0.9)
     fig.tight_layout()
     plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/photon_transfer.png", dpi=1000, bbox_inches="tight")
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/nicer_plots/photon_transfer.pdf", bbox_inches="tight")
     return fig

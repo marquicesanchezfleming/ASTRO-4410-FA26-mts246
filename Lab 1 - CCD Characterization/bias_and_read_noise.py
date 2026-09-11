@@ -41,14 +41,14 @@ def compute_bias_and_read_noise(directory):
     frame_idx = np.arange(len(files))
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
 
-    axes[0].plot(frame_idx, means, 'o', color='tab:blue')
+    axes[0].plot(frame_idx, means, 'o', color='#00553A')
     axes[0].axhline(np.mean(means), color='gray', linestyle='--', label=f"mean = {np.mean(means):.2f} DN")
     axes[0].set_xlabel("Frame number")
     axes[0].set_ylabel("Bias level (DN)")
     axes[0].set_title("Bias level per frame")
     axes[0].legend()
 
-    axes[1].plot(frame_idx, stds, 'o', color='tab:orange')
+    axes[1].plot(frame_idx, stds, 'o', color="#002676")
     axes[1].axhline(np.mean(stds), color='gray', linestyle='--', label=f"mean = {np.mean(stds):.3f} DN")
     axes[1].set_xlabel("Frame number")
     axes[1].set_ylabel("Read noise (DN)")
@@ -57,4 +57,5 @@ def compute_bias_and_read_noise(directory):
 
     plt.tight_layout()
     plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/bias_readnoise_consistency.png", dpi=1000)
+    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/nicer_plots/bias_readnoise_consistency.pdf", bbox_inches="tight")
     plt.show()

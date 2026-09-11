@@ -76,7 +76,18 @@ def annulus_background(image, cx, cy, r_in, r_out):
 def analyze_linearity(frame_dir, aperture_radius=APERTURE_RADIUS_PX,
                        bg_r_in=BG_R_IN_PX, bg_r_out=BG_R_OUT_PX,
                        bias_level=BIAS_LEVEL_DN, saturation_dn=SATURATION_DN,
-                       linear_max_frac=0.7):
+                       linear_max_frac=0.7,
+                       short_exptime_cutoff_s=SHORT_EXPTIME_CUTOFF_S):
+    """
+    short_exptime_cutoff_s: frames below this exposure time are
+        flagged as unreliable (shutter/reset timing) and excluded from
+        the fit. If your whole series falls below the default 0.1s
+        (e.g. a very bright source saturating in milliseconds),
+        lowering this is a deliberate, caveated choice -- state it
+        explicitly in your writeup, and check the residuals of the
+        resulting fit to see whether any of the shortest exposures
+        still stand out as genuinely anomalous.
+    """
     exptimes, data_list, files = load_series(frame_dir)
     mid_idx = len(data_list) // 2
     cx, cy = find_centroid(data_list[mid_idx])
@@ -95,7 +106,7 @@ def analyze_linearity(frame_dir, aperture_radius=APERTURE_RADIUS_PX,
     peak_vals = np.array(peak_vals)
     aperture_vals = np.array(aperture_vals)
 
-    short_exptime_flag = exptimes < SHORT_EXPTIME_CUTOFF_S
+    short_exptime_flag = exptimes < short_exptime_cutoff_s
 
     saturated_flag = peak_vals >= saturation_dn
     near_saturated_flag = peak_vals >= linear_max_frac * saturation_dn
@@ -103,12 +114,22 @@ def analyze_linearity(frame_dir, aperture_radius=APERTURE_RADIUS_PX,
     fit_mask = (~saturated_flag) & (~near_saturated_flag) & (~short_exptime_flag)
     if fit_mask.sum() < 2:
         print("WARNING: fewer than 2 points in the linear regime -- "
-              "widen linear_max_frac or check your exposure series.")
+              "widen linear_max_frac, lower short_exptime_cutoff_s, "
+              "or check your exposure series.")
         slope = intercept = None
     else:
         slope, intercept = np.polyfit(exptimes[fit_mask], aperture_vals[fit_mask], 1)
         print(f"Linear fit (using {fit_mask.sum()} points): "
               f"signal = {slope:.2f} * exptime + {intercept:.2f}")
+
+        # Residuals for the fitted points -- check whether any point
+        # still stands out despite passing the cutoff, especially
+        # relevant if short_exptime_cutoff_s was lowered from default.
+        pred = slope * exptimes[fit_mask] + intercept
+        resid_pct = (aperture_vals[fit_mask] - pred) / pred * 100
+        print("Residuals (%) for fitted points:")
+        for t, r in zip(exptimes[fit_mask], resid_pct):
+            print(f"    {t:8.4f}s : {r:+.2f}%")
 
     print(f"\n{'exptime (s)':>12} {'peak (DN)':>12} {'aperture sum (DN)':>20} {'flag':>12}")
     for t, p, a, sat, near, short in zip(exptimes, peak_vals, aperture_vals,
@@ -132,7 +153,7 @@ def analyze_linearity(frame_dir, aperture_radius=APERTURE_RADIUS_PX,
     }
 
 
-def plot_linearity(results, saturation_dn=SATURATION_DN):
+def plot_linearity(results, saturation_dn=SATURATION_DN, save_path=None, save_path2=None, title=None):
     import matplotlib.pyplot as plt
 
     plt.style.use("seaborn-v0_8-white")
@@ -158,25 +179,36 @@ def plot_linearity(results, saturation_dn=SATURATION_DN):
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-    axes[0].plot(exptimes, aperture_vals, 'o', label="aperture sum")
-    axes[0].plot(exptimes[fit_mask], aperture_vals[fit_mask], 'o', color='green',
+    axes[0].plot(exptimes, aperture_vals, 'o', label="aperture sum", color='#002676')
+    axes[0].plot(exptimes[fit_mask], aperture_vals[fit_mask], 'o', color='#FDB515',
                  label="used in linear fit")
     if results["slope"] is not None:
         t_fit = np.linspace(0, exptimes.max(), 100)
         axes[0].plot(t_fit, results["slope"] * t_fit + results["intercept"],
                      '--', color='gray', label="linear fit")
+    else:
+        print("Note: no fit line drawn -- results['slope'] is None "
+              "(fit_mask had fewer than 2 points). See the WARNING "
+              "printed by analyze_linearity.")
     axes[0].set_xlabel("Exposure time (s)")
     axes[0].set_ylabel("Aperture sum, bias-subtracted (DN)")
-    axes[0].set_title("Linearity")
+    if title:
+        axes[0].set_title(title)
+    else:
+        axes[0].set_title("Linearity")
     axes[0].legend()
 
-    axes[1].plot(exptimes, results["peak_vals"], 'o')
-    axes[1].axhline(saturation_dn, color='red', linestyle='--', label="saturation")
+    axes[1].plot(exptimes, results["peak_vals"], 'o', color='#770747')
+    axes[1].axhline(saturation_dn, color='grey', linestyle='--', label="Saturation")
     axes[1].set_xlabel("Exposure time (s)")
     axes[1].set_ylabel("Peak pixel value (DN)")
     axes[1].set_title("Peak pixel vs exposure time")
     axes[1].legend()
 
     plt.tight_layout()
-    plt.savefig("/Users/Djslime07/ASTRO-4410-FA26-mts246/Lab 1 - CCD Characterization/plots/linearity_and_saturation.png", dpi=1000)
+    if save_path:
+        plt.savefig(save_path, dpi=1000)
+    if save_path2:
+        plt.savefig(save_path2, bbox_inches="tight")
+            
     return fig
