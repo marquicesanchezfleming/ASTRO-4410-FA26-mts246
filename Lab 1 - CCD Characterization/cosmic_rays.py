@@ -363,12 +363,12 @@ def plot_events_per_frame(results, output_dir, display_name=None, filename="even
 
     with plt.rc_context(publication_style()):
         fig, ax = plt.subplots(figsize=(6.5, 3.5))
-        ax.plot(frame_numbers, accepted_events, marker="o", markersize=2.5, linewidth=0.8, alpha=0.8)
+        ax.plot(frame_numbers, accepted_events, marker="o", markersize=2.5, linewidth=0.8, alpha=0.8, color='#f62192')
         mean_events = accepted_events.mean()
-        ax.axhline(mean_events, linestyle="--", linewidth=1.2, label=rf"Mean: {mean_events:.1f}")
+        ax.axhline(mean_events, linestyle="--", linewidth=1.2, label=rf"Mean: {mean_events:.1f}", color='black')
         ax.set_xlabel("Frame number")
         ax.set_ylabel("CR candidate pixels / frame")
-        ax.set_title(rf"{display_name}: cosmic-ray candidates")
+        ax.set_title(rf"{display_name} CCD")
         ax.legend(loc="best")
         ax.tick_params(which="both", top=True, right=True)
         fig.tight_layout()
@@ -378,7 +378,7 @@ def plot_events_per_frame(results, output_dir, display_name=None, filename="even
     return output_path.with_suffix(".pdf")
 
 
-def plot_event_distribution(results, output_dir, display_name=None, filename="event_distribution", bins="auto",):
+def plot_event_distribution(results, output_dir, display_name=None, filename="event_distribution", bins="auto", legend_loc="best",):
     events = np.asarray(results["events_per_frame"])
     good_frames = np.asarray(results["good_frames"])
     if len(good_frames) == 0:
@@ -393,13 +393,13 @@ def plot_event_distribution(results, output_dir, display_name=None, filename="ev
 
     with plt.rc_context(publication_style()):
         fig, ax = plt.subplots(figsize=(5.8, 3.5))
-        ax.hist(accepted_events, bins=bins, edgecolor="black", linewidth=0.7)
-        ax.axvline(mean_events, linestyle="--", linewidth=1.2, label=rf"Mean = {mean_events:.1f}")
-        ax.axvline(median_events, linestyle=":", linewidth=1.2, label=rf"Median = {median_events:.1f}")
+        ax.hist(accepted_events, bins=bins, edgecolor="black", linewidth=0.7, color='#283645')
+        ax.axvline(mean_events, linestyle="--", linewidth=1.2, label=rf"Mean = {mean_events:.1f}", color='#f62192', zorder=2)
+        ax.axvline(median_events, linestyle=":", linewidth=1.2, label=rf"Median = {median_events:.1f}", color='#f62192', zorder=2)
         ax.set_xlabel("CR candidate pixels / frame")
         ax.set_ylabel("Number of frames")
-        ax.set_title(rf"{display_name}: event-count distribution")
-        ax.legend(loc = 'best')
+        ax.set_title(rf"{display_name} CCD")
+        ax.legend(loc=legend_loc)
         ax.tick_params(which="both", top=True, right=True)
         fig.tight_layout()
         output_path = Path(output_dir) / filename
@@ -413,9 +413,9 @@ def make_publication_figures(andor_results, atik_results, output_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     plot_events_per_frame(andor_results, output_dir, display_name="Andor", filename="andor_events_per_frame")
-    plot_event_distribution(andor_results, output_dir, display_name="Andor", filename="andor_event_distribution")
+    plot_event_distribution(andor_results, output_dir, display_name="Andor", filename="andor_event_distribution", legend_loc="upper right")
 
     plot_events_per_frame(atik_results, output_dir, display_name="Atik Titan", filename="atik_events_per_frame")
-    plot_event_distribution(atik_results, output_dir, display_name="Atik Titan", filename="atik_event_distribution")
+    plot_event_distribution(atik_results, output_dir, display_name="Atik Titan", filename="atik_event_distribution", legend_loc="upper left")
 
     print(f"\nPublication figures written to: {output_dir.resolve()}\n")
